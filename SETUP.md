@@ -18,6 +18,7 @@ Isme abhi nahi hai: Claude se reel banana, photo/carousel post, billing, dusre u
 ## Setup (ek baar, ~30 min)
 
 ### 1. Vercel project
+Bana hua project: `instaautomation-715e` (Redis `instaautomation-redis` + Blob `instaautomation-videos` connected).
 1. Vercel → Add New → Project → repo `instaautomation` import karo.
 2. Project ka naam: `instaautomation`. Root Directory default hi rehne do.
 3. Deploy. URL milega jaise `https://instaautomation.vercel.app`. Isko neeche `SITE` bolenge.
