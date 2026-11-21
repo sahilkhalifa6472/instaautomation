@@ -1,11 +1,40 @@
 // Storage: Upstash Redis (its own new database, never git.mate's). Local JSON file when no Redis env (dev only).
 import { Redis } from "@upstash/redis";
+import { createClient } from "redis";
 import fs from "fs";
 import path from "path";
 
+// Two kinds of Redis work: Upstash (REST env vars) or any normal Redis (REDIS_URL, e.g. Redis Cloud free plan from Vercel).
+// Both are wrapped in the same small interface; values are stored as JSON.
+type R = {
+  get<T>(k: string): Promise<T | null>; set(k: string, v: unknown, o?: { nx?: boolean; ex?: number }): Promise<string | null>;
+  lpush(k: string, v: unknown): Promise<unknown>; ltrim(k: string, a: number, b: number): Promise<unknown>; lrange(k: string, a: number, b: number): Promise<unknown[]>;
+  sadd(k: string, m: string): Promise<number>; srem(k: string, m: string): Promise<unknown>; incr(k: string): Promise<number>; expire(k: string, s: number): Promise<unknown>; del(k: string): Promise<unknown>;
+};
 const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const redis = url && token ? new Redis({ url, token }) : null;
+const tcpUrl = process.env.REDIS_URL;
+
+function tcp(u: string): R {
+  const c = createClient({ url: u });
+  let ready: Promise<unknown> | null = null;
+  const conn = () => (ready ??= c.connect().catch((e) => { ready = null; throw e; }));
+  const j = (v: unknown) => JSON.stringify(v);
+  const p = (v: string | null) => { if (v == null) return null; try { return JSON.parse(v); } catch { return v; } };
+  return {
+    async get(k) { await conn(); return p(await c.get(k)); },
+    async set(k, v, o) { await conn(); return c.set(k, j(v), { ...(o?.nx ? { NX: true } : {}), ...(o?.ex ? { EX: o.ex } : {}) }); },
+    async lpush(k, v) { await conn(); return c.lPush(k, j(v)); },
+    async ltrim(k, a, b) { await conn(); return c.lTrim(k, a, b); },
+    async lrange(k, a, b) { await conn(); return (await c.lRange(k, a, b)).map(p); },
+    async sadd(k, m) { await conn(); return c.sAdd(k, m); },
+    async srem(k, m) { await conn(); return c.sRem(k, m); },
+    async incr(k) { await conn(); return c.incr(k); },
+    async expire(k, s) { await conn(); return c.expire(k, s); },
+    async del(k) { await conn(); return c.del(k); },
+  };
+}
+const redis: R | null = url && token ? (new Redis({ url, token }) as unknown as R) : tcpUrl ? tcp(tcpUrl) : null;
 const P = "ap:";
 
 const FILE = path.join(process.cwd(), ".data", "store.json");

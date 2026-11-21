@@ -23,7 +23,7 @@ Isme abhi nahi hai: Claude se reel banana, photo/carousel post, billing, dusre u
 3. Deploy. URL milega jaise `https://instaautomation.vercel.app`. Isko neeche `SITE` bolenge.
 
 ### 2. Naya Redis + Blob (git.mate wale mat use karna)
-1. Is naye project me Storage → Create → **Upstash Redis** (free) → Connect. Env khud aa jayenge.
+1. Storage → Create → **Redis** (Redis Cloud) → High Availability **None** → **Free 30 MB** → project se connect, prefix `REDIS` (env `REDIS_URL` khud aa jayega).
 2. Storage → Create → **Blob** (public) → Connect.
 
 ### 3. Meta app (naya)
