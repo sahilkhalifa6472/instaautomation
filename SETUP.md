@@ -48,7 +48,7 @@ Naye Meta apps me "Instagram login" setup nahi milta, sirf **Unified login** mil
 | `IG_APP_SECRET` | App settings → Basic → App secret |
 | `WEBHOOK_VERIFY_TOKEN` | Koi bhi lamba random text (wahi Meta webhook me daalo) |
 | `CRON_SECRET` | Koi bhi lamba random text |
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API keys (AI replies ke liye) |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API keys (AI replies ke liye). **Ya** AWS credits: `AWS_BEARER_TOKEN_BEDROCK` (Bedrock API key) + `AWS_REGION` (jaise us-east-1) |
 
 Save karke **Redeploy** karo.
 

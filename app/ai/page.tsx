@@ -13,7 +13,7 @@ export default async function Ai({ searchParams }: { searchParams: Promise<Recor
     <div className="wrap">
       <div className="ph"><div><h1>AI replies</h1><div className="sub">AI sirf aapke Business Brain se DM ka jawab dega</div></div></div>
       <Accounts list={list} acc={acc} path="/ai" />
-      {!aiReady() && <div className="card msg e" style={{ marginTop: 12 }}>ANTHROPIC_API_KEY Vercel me set karo, tab AI chalega.</div>}
+      {!aiReady() && <div className="card msg e" style={{ marginTop: 12 }}>ANTHROPIC_API_KEY (ya Bedrock: AWS_BEARER_TOKEN_BEDROCK + AWS_REGION) Vercel me set karo, tab AI chalega.</div>}
       <div className="card" style={{ marginTop: 12 }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div><b>AI auto reply: {acc.ai_on ? "ON" : "OFF"}</b><div className="note">Pehle neeche Test chat me check karo, phir ON karo. Model: {AI_MODEL}. Limit 60 replies/hour.</div></div>

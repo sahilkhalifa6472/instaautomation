@@ -22,7 +22,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     } catch (e: any) { igErr = e.message; }
   }
   const ev = acc ? (await events(150)).filter((e) => e.account === acc.id).slice(0, 25) : [];
-  const setup = [!process.env.IG_APP_ID && "IG_APP_ID", !process.env.IG_APP_SECRET && "IG_APP_SECRET", !aiReady() && "ANTHROPIC_API_KEY",
+  const setup = [!process.env.IG_APP_ID && "IG_APP_ID", !process.env.IG_APP_SECRET && "IG_APP_SECRET", !aiReady() && "ANTHROPIC_API_KEY / AWS_BEARER_TOKEN_BEDROCK",
     !process.env.CRON_SECRET && "CRON_SECRET", !process.env.WEBHOOK_VERIFY_TOKEN && "WEBHOOK_VERIFY_TOKEN", storeKind === "file" && "Upstash Redis"].filter(Boolean);
 
   return (

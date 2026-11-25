@@ -1,9 +1,12 @@
 // AI DM replies with Claude Haiku 5.5, answering only from this account's own "business brain".
 import Anthropic from "@anthropic-ai/sdk";
+import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk";
 import type { Account } from "./data";
 
+// Anthropic API key, or Amazon Bedrock API key (AWS_BEARER_TOKEN_BEDROCK + AWS_REGION) for AWS credits
+const bedrock = () => !process.env.ANTHROPIC_API_KEY && !!process.env.AWS_BEARER_TOKEN_BEDROCK;
 export const AI_MODEL = "claude-haiku-5-5";
-export const aiReady = () => !!process.env.ANTHROPIC_API_KEY;
+export const aiReady = () => !!process.env.ANTHROPIC_API_KEY || !!process.env.AWS_BEARER_TOKEN_BEDROCK;
 
 export type Turn = { from: "customer" | "us"; text: string };
 export type AiOut = { reply: string; handoff: boolean; reason: string };
@@ -30,7 +33,7 @@ const SCHEMA = {
 };
 
 export async function aiReply(acc: Account, turns: Turn[]): Promise<AiOut> {
-  const client = new Anthropic(); // reads ANTHROPIC_API_KEY
+  const client = bedrock() ? new AnthropicBedrockMantle({ awsRegion: process.env.AWS_REGION || "us-east-1" }) : new Anthropic();
   const system = `You are the Instagram DM assistant for @${acc.username}. You talk to people who messaged this account.
 
 ${SAFETY}
@@ -44,7 +47,7 @@ ${acc.brain.slice(0, 12000)}
 """`;
   const transcript = turns.slice(-16).map((t) => `${t.from === "customer" ? "Customer" : "You"}: ${t.text}`).join("\n");
   const res = await client.messages.create({
-    model: AI_MODEL,
+    model: bedrock() ? `anthropic.${AI_MODEL}` : AI_MODEL,
     max_tokens: 2000,
     system,
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },

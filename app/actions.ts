@@ -69,7 +69,7 @@ export async function toggleAi(f: FormData) {
 export async function testAi(a: string, turns: Turn[]) {
   await must(); const acc = await account(a);
   if (!acc) return { reply: "", handoff: true, reason: "No account" };
-  if (!aiReady()) return { reply: "", handoff: true, reason: "ANTHROPIC_API_KEY Vercel me set nahi hai" };
+  if (!aiReady()) return { reply: "", handoff: true, reason: "AI key (ANTHROPIC_API_KEY ya AWS_BEARER_TOKEN_BEDROCK) Vercel me set nahi hai" };
   try { return await aiReply(acc, turns); } catch (e: any) { return { reply: "", handoff: true, reason: e.message.slice(0, 200) }; }
 }
 
