@@ -28,16 +28,14 @@ Bana hua project: `instaautomation-715e` (Redis `instaautomation-redis` + Blob `
 2. Storage → Create → **Blob** (public) → Connect.
 
 ### 3. Meta app (naya)
-1. developers.facebook.com → Create app → use case **"Manage messaging & content on Instagram"**.
-2. Left me Instagram → **API setup with Instagram login**.
-3. Wahan **Instagram app ID** aur **Instagram app secret** copy karo (step 4 me chahiye).
-4. "Set up Instagram business login" → Business login settings → **Redirect URL**: `SITE/api/ig/callback`
-5. "Configure webhooks" → Callback URL: `SITE/api/webhook`, Verify token: jo aap `WEBHOOK_VERIFY_TOKEN` me rakhoge → Verify and save → fields **comments** aur **messages** ON.
-6. App settings → Basic → Privacy Policy URL `SITE/privacy`, Data deletion URL `SITE/data-deletion` → Save.
-7. App roles → Roles → **Add people → Instagram Tester** → apna IG username.
-8. Instagram app me (us account se): Settings → Website permissions → Apps and websites → **Tester invites** → Accept.
-
-App ko Live karne ya App Review ki zarurat nahi: testers pe Development mode me chalega.
+Bana hua app: **AutoReplyHub** (App ID `2382972129206400`, business portfolio "Sahil Khalifa's Business"). Meta naam me "Insta" allow nahi karta.
+Naye Meta apps me "Instagram login" setup nahi milta, sirf **Unified login** milta hai. App isi se chalta hai (token kabhi expire nahi hota).
+1. Use case **"Manage messaging & content on Instagram"** → API setup with Unified login.
+2. Configuration "Instagram API (Unified Login)" bani hai, ID `2601503093650560` → Vercel env `IG_CONFIG_ID`.
+3. Redirect URL: `SITE/api/ig/callback` (save ho chuka).
+4. Configure webhooks → Callback URL `SITE/api/webhook`, Verify token = `WEBHOOK_VERIFY_TOKEN` → fields **comments** aur **messages** ON.
+5. App settings → Basic → Privacy Policy URL `SITE/privacy`, Data deletion URL `SITE/data-deletion`, **App secret** copy karo (`IG_APP_SECRET`).
+6. App roles → Roles → apna Instagram account tester/admin ke roop me add karo.
 
 ### 4. Vercel → Settings → Environment Variables
 
@@ -45,8 +43,9 @@ App ko Live karne ya App Review ki zarurat nahi: testers pe Development mode me 
 | --- | --- |
 | `APP_PASSWORD` | Dashboard ka password (aap rakho) |
 | `APP_URL` | `SITE` (jaise https://instaautomation.vercel.app, end me / nahi) |
-| `IG_APP_ID` | Step 3.3 wala Instagram app ID |
-| `IG_APP_SECRET` | Step 3.3 wala Instagram app secret |
+| `IG_APP_ID` | Meta App ID (`2382972129206400`) |
+| `IG_CONFIG_ID` | `2601503093650560` (Unified login configuration) |
+| `IG_APP_SECRET` | App settings → Basic → App secret |
 | `WEBHOOK_VERIFY_TOKEN` | Koi bhi lamba random text (wahi Meta webhook me daalo) |
 | `CRON_SECRET` | Koi bhi lamba random text |
 | `ANTHROPIC_API_KEY` | console.anthropic.com → API keys (AI replies ke liye) |

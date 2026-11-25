@@ -18,19 +18,23 @@ export async function GET(req: Request) {
   if (u.get("error")) return back(`err=${encodeURIComponent(u.get("error_description") || u.get("error") || "cancelled")}`);
   if (!u.get("code") || !state || u.get("state") !== state) return back(`err=${encodeURIComponent("Login expire ho gaya, dobara try karo")}`);
   try {
-    const token = await ig.exchangeCode(process.env.IG_APP_ID!, process.env.IG_APP_SECRET!, redirectUri(req), u.get("code")!);
-    const prof = await ig.me(token);
-    const id = String(prof.user_id);
-    const old = await account(id);
-    await saveAccount({
-      id, username: prof.username, token, token_at: Date.now(), connected_at: old?.connected_at || Date.now(),
-      reply_token: old?.reply_token, rules: old?.rules || [], ai_on: old?.ai_on || false,
-      brain: old?.brain || DEFAULT_BRAIN, goal: old?.goal || "", tone: old?.tone || "", last_error: "",
-    });
-    let note = "";
-    try { await ig.subscribe(id, token); } catch (e: any) { note = ` (webhook subscribe failed: ${e.message.slice(0, 120)})`; }
-    await log(id, "token", `Connected @${prof.username}${note}`, !note);
-    return back(`ok=${encodeURIComponent("@" + prof.username + " connected")}`);
+    const appId = process.env.IG_APP_ID!, secret = process.env.IG_APP_SECRET!;
+    const token = await ig.exchangeCode(appId, secret, redirectUri(req), u.get("code")!, !!process.env.IG_CONFIG_ID);
+    const names: string[] = [];
+    for (const prof of await ig.accounts(token, appId, secret)) {
+      const id = String(prof.user_id);
+      const old = await account(id);
+      await saveAccount({
+        id, username: prof.username, token, token_at: Date.now(), connected_at: old?.connected_at || Date.now(),
+        reply_token: old?.reply_token, rules: old?.rules || [], ai_on: old?.ai_on || false,
+        brain: old?.brain || DEFAULT_BRAIN, goal: old?.goal || "", tone: old?.tone || "", last_error: "",
+      });
+      let note = "";
+      try { await ig.subscribe(id, token); } catch (e: any) { note = ` (webhook subscribe failed: ${e.message.slice(0, 120)})`; }
+      await log(id, "token", `Connected @${prof.username}${note}`, !note);
+      names.push("@" + prof.username);
+    }
+    return back(`ok=${encodeURIComponent(names.join(", ") + " connected")}`);
   } catch (e: any) {
     return back(`err=${encodeURIComponent(e.message.slice(0, 300))}`);
   }

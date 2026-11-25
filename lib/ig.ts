@@ -1,4 +1,4 @@
-// Instagram API with Instagram Login (graph.instagram.com). EAA... tokens go to graph.facebook.com.
+// Instagram API. IGAA... tokens (Instagram Login) use graph.instagram.com, EAA... tokens (Unified login) use graph.facebook.com.
 const IG = "https://graph.instagram.com/v23.0";
 const FB = "https://graph.facebook.com/v23.0";
 const B = (token: string) => (token.startsWith("EAA") ? FB : IG);
@@ -27,40 +27,75 @@ const tq = (t: string) => `access_token=${encodeURIComponent(t)}`;
 const json = (o: unknown) => ({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) });
 
 // ---- login ("Continue with Instagram")
-export function authorizeUrl(appId: string, redirect: string, state: string) {
+// Newer Meta apps only get "Unified login": facebook.com/dialog/oauth with a config_id (IG_CONFIG_ID),
+// giving a never-expiring EAA system-user token used on graph.facebook.com. Old apps: Instagram Login.
+export function authorizeUrl(appId: string, redirect: string, state: string, configId?: string) {
+  if (configId) {
+    const q = new URLSearchParams({ client_id: appId, config_id: configId, override_default_response_type: "true", redirect_uri: redirect, response_type: "code", state });
+    return `https://www.facebook.com/v23.0/dialog/oauth?${q}`;
+  }
   const q = new URLSearchParams({ enable_fb_login: "0", force_authentication: "1", client_id: appId, redirect_uri: redirect, response_type: "code", scope: SCOPES.join(","), state });
   return `https://www.instagram.com/oauth/authorize?${q}`;
 }
-export async function exchangeCode(appId: string, secret: string, redirect: string, code: string) {
+export async function exchangeCode(appId: string, secret: string, redirect: string, code: string, unified = false) {
+  if (unified) {
+    const q = new URLSearchParams({ client_id: appId, client_secret: secret, redirect_uri: redirect, code });
+    return (await http(`${FB}/oauth/access_token?${q}`)).access_token as string;
+  }
   const short = await http("https://api.instagram.com/oauth/access_token", {
     method: "POST", body: form({ client_id: appId, client_secret: secret, grant_type: "authorization_code", redirect_uri: redirect, code: code.replace(/#_$/, "") }),
   });
   const long = await http(`https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(secret)}&${tq(short.access_token)}`);
   return long.access_token as string;
 }
+export const neverExpires = (token: string) => token.startsWith("EAA");
 export async function refreshToken(token: string): Promise<string> {
+  if (neverExpires(token)) return token;
   return (await http(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&${tq(token)}`)).access_token;
 }
-export async function me(token: string): Promise<{ user_id: string; username: string; followers_count?: number; media_count?: number }> {
-  return http(`${IG}/me?fields=user_id,username,followers_count,media_count&${tq(token)}`);
+type Prof = { user_id: string; username: string; followers_count?: number; media_count?: number };
+export async function me(token: string): Promise<Prof> {
+  return (await accounts(token))[0];
+}
+// every Instagram account this token can use
+export async function accounts(token: string, appId?: string, secret?: string): Promise<Prof[]> {
+  if (!token.startsWith("EAA")) return [await http(`${IG}/me?fields=user_id,username,followers_count,media_count&${tq(token)}`)];
+  const f = "id,username,followers_count,media_count";
+  const ids = new Set<string>();
+  if (appId && secret) {
+    try {
+      const d = await http(`${FB}/debug_token?input_token=${encodeURIComponent(token)}&access_token=${encodeURIComponent(appId + "|" + secret)}`);
+      for (const g of d.data?.granular_scopes || []) if (String(g.scope).startsWith("instagram")) for (const t of g.target_ids || []) ids.add(String(t));
+    } catch { /* fall back to pages below */ }
+  }
+  try {
+    const pages = await http(`${FB}/me/accounts?fields=instagram_business_account&limit=50&${tq(token)}`);
+    for (const p of pages.data || []) if (p.instagram_business_account?.id) ids.add(String(p.instagram_business_account.id));
+  } catch { /* token may have no pages */ }
+  const out: Prof[] = [];
+  for (const id of ids) {
+    try { const p = await http(`${FB}/${id}?fields=${f}&${tq(token)}`); if (p.username) out.push({ ...p, user_id: String(p.id) }); } catch { /* not an IG account */ }
+  }
+  if (!out.length) throw new Error("Is login me koi Instagram account nahi mila. Login ke time Instagram account select karo.");
+  return out;
 }
 // turn on webhooks (comments + DMs) for this account
 export async function subscribe(userId: string, token: string) {
-  return http(`${IG}/${userId}/subscribed_apps?subscribed_fields=comments,messages&${tq(token)}`, { method: "POST" });
+  return http(`${B(token)}/${userId}/subscribed_apps?subscribed_fields=comments,messages&${tq(token)}`, { method: "POST" });
 }
 
 // ---- posting (reels)
 export async function createReel(userId: string, token: string, p: { video_url: string; caption: string }) {
-  return http(`${IG}/${userId}/media`, { method: "POST", body: form({ media_type: "REELS", video_url: p.video_url, caption: p.caption, share_to_feed: "true", access_token: token }) }) as Promise<{ id: string }>;
+  return http(`${B(token)}/${userId}/media`, { method: "POST", body: form({ media_type: "REELS", video_url: p.video_url, caption: p.caption, share_to_feed: "true", access_token: token }) }) as Promise<{ id: string }>;
 }
 export async function containerStatus(id: string, token: string) {
-  return http(`${IG}/${id}?fields=status_code,status&${tq(token)}`) as Promise<{ status_code: string; status?: string }>;
+  return http(`${B(token)}/${id}?fields=status_code,status&${tq(token)}`) as Promise<{ status_code: string; status?: string }>;
 }
 export async function publish(userId: string, token: string, creationId: string) {
-  return http(`${IG}/${userId}/media_publish`, { method: "POST", body: form({ creation_id: creationId, access_token: token }) }) as Promise<{ id: string }>;
+  return http(`${B(token)}/${userId}/media_publish`, { method: "POST", body: form({ creation_id: creationId, access_token: token }) }) as Promise<{ id: string }>;
 }
 export async function permalink(mediaId: string, token: string): Promise<string> {
-  try { return (await http(`${IG}/${mediaId}?fields=permalink&${tq(token)}`)).permalink || ""; } catch { return ""; }
+  try { return (await http(`${B(token)}/${mediaId}?fields=permalink&${tq(token)}`)).permalink || ""; } catch { return ""; }
 }
 
 // ---- insights
@@ -72,7 +107,7 @@ export async function listMedia(userId: string, token: string, limit = 12): Prom
 export async function mediaInsights(mediaId: string, token: string) {
   const out: Record<string, number> = {};
   try {
-    const b = await http(`${IG}/${mediaId}/insights?metric=views,reach,likes,comments,shares,saved&${tq(token)}`);
+    const b = await http(`${B(token)}/${mediaId}/insights?metric=views,reach,likes,comments,shares,saved&${tq(token)}`);
     for (const m of b.data || []) out[m.name] = m.values?.[0]?.value ?? 0;
   } catch { /* old posts / photos may not have every metric */ }
   return out;

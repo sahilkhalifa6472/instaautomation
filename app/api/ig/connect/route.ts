@@ -12,5 +12,5 @@ export async function GET(req: Request) {
   if (!appId || !process.env.IG_APP_SECRET) return Response.redirect(`${appUrl(req)}/?err=${encodeURIComponent("IG_APP_ID / IG_APP_SECRET Vercel me set nahi hai")}`);
   const state = crypto.randomUUID();
   (await cookies()).set("ap_state", state, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 600 });
-  return Response.redirect(authorizeUrl(appId, redirectUri(req), state));
+  return Response.redirect(authorizeUrl(appId, redirectUri(req), state, process.env.IG_CONFIG_ID));
 }

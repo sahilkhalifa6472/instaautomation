@@ -78,7 +78,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
           <div className="sec"><div className="lbl">Account</div>
             <div className="card">
-              <p className="note">Token: {ago(acc.token_at)} (60 din chalta hai, app khud 45 din pe refresh karta hai). Connected {ago(acc.connected_at)}.</p>
+              <p className="note">Token: {ago(acc.token_at)} ({acc.token.startsWith("EAA") ? "kabhi expire nahi hota" : "60 din chalta hai, app khud 45 din pe refresh karta hai"}). Connected {ago(acc.connected_at)}.</p>
               <div className="row" style={{ marginTop: 12 }}>
                 <a className="btn" href="/api/ig/connect">+ Account / Reconnect</a>
                 <form action={disconnect}><input type="hidden" name="a" value={acc.id} /><button className="btn">Disconnect @{acc.username}</button></form>
